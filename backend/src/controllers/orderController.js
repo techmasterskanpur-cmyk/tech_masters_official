@@ -186,12 +186,13 @@ exports.createOrder = async (req, res) => {
                 </div>
             `;
 
-            await sendEmail({
+            // ✅ NON-BLOCKING: Don't await email, send it in background
+            sendEmail({
                 email: req.user.email,
                 subject: `Tech_Masters Invoice - Order #${customOrderId}`,
                 message,
-            });
-            console.log('Order Confirmation Email Sent');
+            }).catch(err => console.error('Email background error:', err));
+            console.log('Order Confirmation Email Triggered');
         } catch (emailError) {
             console.error('Email sending failed:', emailError);
         }
@@ -388,11 +389,12 @@ exports.updateOrderStatus = async (req, res) => {
                 `;
 
                 if (order.user && order.user.email) {
-                    await sendEmail({
+                    // ✅ NON-BLOCKING: Background update email
+                    sendEmail({
                         email: order.user.email,
                         subject: `Update on Order #${order.orderId || order._id.toString().slice(-8).toUpperCase()}: ${newStatus}`,
                         message,
-                    });
+                    }).catch(err => console.error('Update email background error:', err));
                 }
             } catch (emailError) {
                 console.error('Email sending failed:', emailError);

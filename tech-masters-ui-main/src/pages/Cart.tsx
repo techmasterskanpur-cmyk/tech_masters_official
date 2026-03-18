@@ -49,7 +49,7 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-[80vh] flex flex-col bg-background">
       <Navbar />
 
       <main className="flex-1">

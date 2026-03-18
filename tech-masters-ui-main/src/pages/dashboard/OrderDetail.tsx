@@ -43,6 +43,16 @@ const statusConfig: Record<string, { label: string; color: string; variant: 'def
   'Cancelled': { label: 'Cancelled', color: 'text-red-600', variant: 'destructive' },
 };
 
+// Global Print Styles
+const printStyles = `
+  @media print {
+    body * { visibility: hidden; }
+    .print-container, .print-container * { visibility: visible; }
+    .print-container { position: absolute; left: 0; top: 0; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    @page { margin: 10mm; }
+  }
+`;
+
 const OrderDetail = () => {
   const { orderId } = useParams();
   const [order, setOrder] = useState<any>(null);
@@ -83,14 +93,7 @@ const OrderDetail = () => {
     contentRef: invoiceRef,
     // Use professional ID for the saved PDF filename
     documentTitle: `Invoice_${order?.orderId || order?._id}`,
-    pageStyle: `
-      @media print {
-        body { -webkit-print-color-adjust: exact; margin: 0; padding: 20px; font-family: sans-serif; }
-        .print-container { width: 100%; max-width: 800px; margin: 0 auto; border: none !important; shadow: none !important; }
-        .no-print { display: none !important; }
-        @page { margin: 10mm; }
-      }
-    `
+    pageStyle: printStyles
   });
 
   if (loading) {
@@ -306,8 +309,8 @@ const OrderDetail = () => {
         </div>
       </div>
 
-      {/* ✅ HIDDEN INVOICE TEMPLATE (ONLY FOR PRINTING) */}
-      <div style={{ display: "none" }}>
+      {/* ✅ PROFESSIONAL INVOICE TEMPLATE (Print Only) */}
+      <div className="hidden print:block">
         <div ref={invoiceRef} className="print-container p-6 sm:p-8 bg-white text-black font-sans">
             <div className="flex justify-between items-start border-b-2 border-gray-200 pb-6 mb-6">
                 <div>

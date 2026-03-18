@@ -305,7 +305,7 @@ const ProductListing = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-[80vh] flex flex-col bg-background">
       <Navbar />
 
       <main className="flex-1">
@@ -325,7 +325,7 @@ const ProductListing = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Mobile Filter Button */}
               <Sheet>
                 <SheetTrigger asChild>
@@ -346,7 +346,7 @@ const ProductListing = () => {
 
               {/* Sort Dropdown */}
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
