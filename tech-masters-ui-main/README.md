@@ -7,7 +7,7 @@ Tech_Masters is a comprehensive e-commerce platform for electronic components, f
 - **Frontend**: Built with Vite, React, TypeScript, and Tailwind CSS.
 - **Backend**: Node.js, Express, and MongoDB Atlas for cloud-based data storage.
 - **AI Enrichment**: Integrated with Groq AI for professional product descriptions and specifications.
-
+ 
 ## Key Features
 
 - **Extensive Catalog**: Over 1,480 products across multiple categories.
