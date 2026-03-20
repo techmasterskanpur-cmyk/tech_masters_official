@@ -297,7 +297,7 @@ export const Navbar: React.FC = () => {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80 flex flex-col h-full">
+              <SheetContent side="right" className="w-80 flex flex-col h-full" onOpenAutoFocus={(e) => e.preventDefault()}>
                 <SheetHeader>
                   <SheetTitle className="text-left flex items-center gap-2">
                     <img src="/logo.png" alt="Tech Masters Logo" className="h-8 w-8 object-contain" />
@@ -309,9 +309,90 @@ export const Navbar: React.FC = () => {
                   </SheetTitle>
                 </SheetHeader>
                 
-                <div className="mt-6 flex-1 overflow-y-auto pr-2 pb-20 scrollbar-thin">
+                <div className="mt-6 flex-1 overflow-y-auto pr-2 pb-20 scrollbar-thin flex flex-col">
+                  {/* Mobile Auth Links (Moved to Top) */}
+                  <div className="mb-6 border-b pb-4">
+                    {isAuthenticated ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3 px-3 py-2 mb-2 bg-muted/30 rounded-lg">
+                          <div className="h-10 w-10 rounded-full gradient-primary flex items-center justify-center shrink-0 overflow-hidden border border-border/50">
+                            {user && (user as any).avatar ? (
+                              <img src={(user as any).avatar} alt={user?.name || 'User'} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                              <span className="text-sm font-semibold text-primary-foreground">
+                                {user?.name?.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div className="truncate">
+                            <p className="text-sm font-medium truncate">{user?.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                          </div>
+                        </div>
+                        <Link
+                          to="/dashboard"
+                          className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <User className="h-4 w-4" />
+                          <span>My Profile</span>
+                        </Link>
+                        <Link
+                          to="/dashboard/orders"
+                          className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <Package className="h-4 w-4" />
+                          <span>My Orders</span>
+                        </Link>
+                        <Link
+                          to="/dashboard/addresses"
+                          className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <MapPin className="h-4 w-4" />
+                          <span>Addresses</span>
+                        </Link>
+                        
+                        {(user as any)?.role === 'admin' && (
+                             <Link
+                             to="/admin"
+                             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted text-blue-600 font-medium"
+                             onClick={() => setMobileMenuOpen(false)}
+                           >
+                             <Gauge className="h-4 w-4" />
+                             <span>Admin Dashboard</span>
+                           </Link>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3 px-1">
+                        <Button
+                          variant="outline"
+                          className="w-full h-11"
+                          onClick={() => {
+                            navigate('/login');
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          Login
+                        </Button>
+                        <Button
+                          variant="cta"
+                          className="w-full h-11"
+                          onClick={() => {
+                            navigate('/signup');
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          Sign Up
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Mobile Search */}
-                  <form onSubmit={handleSearch} className="relative mb-6">
+                  <form onSubmit={handleSearch} className="relative mb-6 shrink-0">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       type="search"
@@ -323,7 +404,7 @@ export const Navbar: React.FC = () => {
                   </form>
 
                   {/* ✅ DYNAMIC Mobile Categories */}
-                  <div className="space-y-1">
+                  <div className="space-y-1 flex-1">
                     <p className="text-sm font-semibold text-muted-foreground mb-3 px-1">Categories</p>
                     {dbCategories.length > 0 ? dbCategories.map((category) => {
                       const IconComponent = getCategoryIcon(category.name);
@@ -345,89 +426,21 @@ export const Navbar: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Mobile Auth Section (Fixed to Bottom) */}
-                <div className="border-t pt-4 pb-6 bg-background mt-auto shrink-0">
-                  {isAuthenticated ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3 px-3 py-2 mb-2 bg-muted/30 rounded-lg">
-                        <div className="h-10 w-10 rounded-full gradient-primary flex items-center justify-center shrink-0 overflow-hidden border border-border/50">
-                          {user && (user as any).avatar ? (
-                            <img src={(user as any).avatar} alt={user?.name || 'User'} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-                          ) : (
-                            <span className="text-sm font-semibold text-primary-foreground">
-                              {user?.name?.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-                        <div className="truncate">
-                          <p className="text-sm font-medium truncate">{user?.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-                        </div>
-                      </div>
-                      <Link
-                        to="/dashboard"
-                        className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <User className="h-4 w-4" />
-                        <span>My Profile</span>
-                      </Link>
-                      <Link
-                        to="/dashboard/orders"
-                        className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Package className="h-4 w-4" />
-                        <span>My Orders</span>
-                      </Link>
-                      
-                      {(user as any)?.role === 'admin' && (
-                           <Link
-                           to="/admin"
-                           className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted text-blue-600 font-medium"
-                           onClick={() => setMobileMenuOpen(false)}
-                         >
-                           <Gauge className="h-4 w-4" />
-                           <span>Admin Dashboard</span>
-                         </Link>
-                      )}
-
-                      <button
-                        className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-red-50 hover:text-red-600 w-full text-destructive transition-colors mt-2"
-                        onClick={() => {
-                          logout();
-                          setMobileMenuOpen(false);
-                        }}
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span className="font-medium">Logout</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-3 px-1">
-                      <Button
-                        variant="outline"
-                        className="w-full h-11"
-                        onClick={() => {
-                          navigate('/login');
-                          setMobileMenuOpen(false);
-                        }}
-                      >
-                        Login
-                      </Button>
-                      <Button
-                        variant="cta"
-                        className="w-full h-11"
-                        onClick={() => {
-                          navigate('/signup');
-                          setMobileMenuOpen(false);
-                        }}
-                      >
-                        Sign Up
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                {/* Mobile Logout / Footer Section (Fixed to Bottom) */}
+                {isAuthenticated && (
+                  <div className="border-t pt-2 pb-6 bg-background mt-auto shrink-0 px-2">
+                    <button
+                      className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-red-50 hover:text-red-600 w-full text-destructive transition-colors mt-2"
+                      onClick={() => {
+                        logout();
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span className="font-medium">Logout</span>
+                    </button>
+                  </div>
+                )}
               </SheetContent>
             </Sheet>
           </div>

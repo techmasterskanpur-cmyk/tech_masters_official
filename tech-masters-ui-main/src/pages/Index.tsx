@@ -110,14 +110,18 @@ const Index = () => {
 
   if (loading) {
      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <div className="min-h-screen flex flex-col bg-background">
+            <Navbar />
+            <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+            <Footer />
         </div>
      );
   }
 
   return (
-    <div className="min-h-[80vh] flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
 
       {/* Hero Section */}

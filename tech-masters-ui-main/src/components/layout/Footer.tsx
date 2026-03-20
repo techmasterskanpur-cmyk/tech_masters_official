@@ -6,7 +6,7 @@ export const Footer: React.FC = () => {
   return (
     <footer className="bg-primary text-primary-foreground">
       {/* Main Footer */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand Column */}
           <div className="space-y-4">
@@ -34,6 +34,7 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2">
               {[
                 { name: 'All Products', href: '/products' },
+                { name: 'About Us', href: '/about' },
                 { name: 'My Dashboard', href: '/dashboard' },
                 { name: 'Track Order', href: '/dashboard/orders' },
                 { name: 'Shopping Cart', href: '/cart' },

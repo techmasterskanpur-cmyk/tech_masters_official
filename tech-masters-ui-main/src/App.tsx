@@ -33,6 +33,11 @@ import TermsOfUse from "./pages/TermsOfUse";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import AboutUs from "./pages/AboutUs";
 
+// ✅ UI Components for Loaders
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { Loader2 } from "lucide-react";
+
 const queryClient = new QueryClient();
 
 // ==========================================
@@ -45,7 +50,17 @@ const ProtectedRoute = () => {
   
   // If we have a token in localStorage but state isn't updated yet, wait.
   const hasToken = !!localStorage.getItem('user');
-  if (hasToken && !user) return <div className="h-screen flex items-center justify-center">Loading...</div>;
+  if (hasToken && !user) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!user) return <Navigate to="/login" replace />;
   return <Outlet />;
@@ -61,8 +76,12 @@ const AdminRoute = () => {
   // If there's data in storage but React state is still null, show a loader
   if (userStored && !user) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+        <Footer />
       </div>
     );
   }

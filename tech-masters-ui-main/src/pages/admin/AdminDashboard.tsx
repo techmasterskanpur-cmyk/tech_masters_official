@@ -407,16 +407,14 @@ const AdminDashboard = () => {
 
       {/* ✅ UPDATED INVOICE SHEET */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          <SheetHeader className="mb-6">
-            <SheetTitle className="flex justify-between items-center">
-                Order Details
-                <Button size="sm" variant="outline" onClick={() => handlePrint()}><Printer className="h-4 w-4 mr-2" /> Print Invoice</Button>
-            </SheetTitle>
+        <SheetContent className="w-[95vw] sm:max-w-3xl overflow-y-auto">
+          <SheetHeader className="mb-6 flex flex-row items-center justify-between">
+              <SheetTitle>Order Invoice</SheetTitle>
+              <Button size="sm" variant="outline" onClick={() => handlePrint()}><Printer className="h-4 w-4 mr-2" /> Print Invoice</Button>
           </SheetHeader>
           
           {selectedOrder && (
-            <div ref={invoiceRef} className="print-container p-6 sm:p-8 bg-white text-black border rounded-lg shadow-sm">
+          <div ref={invoiceRef} className="print-container p-6 sm:p-8 bg-white text-black border rounded-lg shadow-sm">
                 
                 <div className="flex flex-col sm:flex-row justify-between border-b-2 border-gray-200 pb-6 mb-6">
                     <div>

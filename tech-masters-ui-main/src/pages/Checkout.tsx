@@ -148,7 +148,7 @@ const Checkout = () => {
       const { data } = await api.post('/orders', orderPayload);
 
       // 4. Success
-      alert(`Order Placed Successfully!`);
+      alert(`Order Placed Successfully!\n\nWe will contact you shortly for payment and confirmation.`);
       
       if(clearCart) clearCart(); 
       
