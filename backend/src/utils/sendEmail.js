@@ -3,12 +3,24 @@ const nodemailer = require('nodemailer');
 // ✅ Create transporter once for persistence (Singleton pattern)
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // true for 465, false for other ports
+    port: 465,
+    secure: true, // MUST be true for port 465 (Implicit TLS)
     auth: {
         user: process.env.SMTP_EMAIL,
         pass: process.env.SMTP_PASSWORD,
     },
+    // Add debug and timeout settings to prevent silent 2-minute hangs
+    connectionTimeout: 10000, 
+    greetingTimeout: 5000,
+    socketTimeout: 20000,
+});
+
+transporter.verify(function (error, success) {
+    if (error) {
+        console.error("❌ SMTP Connection Error (Check Gmail App Password):", error);
+    } else {
+        console.log("✅ SMTP Server is ready to take our messages");
+    }
 });
 
 const sendEmail = async (options) => {
