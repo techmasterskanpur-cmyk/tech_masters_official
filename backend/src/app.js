@@ -1,32 +1,115 @@
-const orderRoutes = require('./routes/orderRoutes');
-const productRoutes = require('./routes/productRoutes');
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const authRoutes = require('./routes/authRoutes'); // Import Routes
+/**
+ * app.js – Tech_Masters Express Application
+ * ──────────────────────────────────────────
+ * Performance-hardened setup:
+ *   • Compression (gzip/br) on every response
+ *   • Security headers via Helmet
+ *   • Smart CORS with explicit allowed origins
+ *   • Rate limiting on auth endpoints
+ *   • /api/homepage batch endpoint (1 request instead of 4 for the home page)
+ *   • ETag middleware for 304 Not Modified support
+ */
 
+const express      = require('express');
+const cors         = require('cors');
+const helmet       = require('helmet');
+const morgan       = require('morgan');
+const compression  = require('compression');
+const rateLimit    = require('express-rate-limit');
+
+const orderRoutes   = require('./routes/orderRoutes');
+const productRoutes = require('./routes/productRoutes');
+const authRoutes    = require('./routes/authRoutes');
+
+const { getCategories, getHomepageBundle } = require('./controllers/productController');
 
 const app = express();
 
-// Middleware
-app.use(express.json());
-app.use(helmet());
-app.use(cors());
-app.use('/api/orders', orderRoutes);
+// ── Trust proxy (required for Render / Railway / Heroku) ─────────────────────
+app.set('trust proxy', 1);
 
-// Logger
-if (process.env.NODE_ENV === 'development') {
+// ── ETag support (lets browsers cache with 304 Not Modified) ─────────────────
+app.set('etag', 'strong');
+
+// ── Compression: reduces JSON payload size by ~70 % ──────────────────────────
+app.use(compression({ level: 6, threshold: 1024 }));
+
+// ── Security headers ──────────────────────────────────────────────────────────
+app.use(helmet());
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+const ALLOWED_ORIGINS = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    // Add your production Vercel URL here, e.g.:
+    process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            // Allow requests with no origin (mobile apps, curl, Postman)
+            if (!origin) return callback(null, true);
+            if (ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV === 'development') {
+                return callback(null, true);
+            }
+            callback(new Error(`CORS: origin "${origin}" not allowed`));
+        },
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        credentials: true,
+    })
+);
+
+// ── Body parsing ──────────────────────────────────────────────────────────────
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// ── Request logger (dev only) ─────────────────────────────────────────────────
+if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
 }
 
-// Mount Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
+// ── Rate limiters ─────────────────────────────────────────────────────────────
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
-// Test Route
-app.get('/', (req, res) => {
-    res.json({ message: 'Tech_Masters Backend is working!' });
+// ── Routes ────────────────────────────────────────────────────────────────────
+
+/**
+ * /api/homepage  ← NEW: single batch endpoint for the home page
+ * Returns { categories, featured, popular, newest } in one request.
+ * Cached aggressively (45 s fresh + 90 s stale-while-revalidate).
+ */
+app.get('/api/homepage', getHomepageBundle);
+
+app.use('/api/auth',     authLimiter, authRoutes);
+app.get('/api/categories', getCategories);
+app.use('/api/products', productRoutes);
+app.use('/api/orders',   orderRoutes);
+
+// ── Health check ──────────────────────────────────────────────────────────────
+app.get('/', (_req, res) => {
+    res.json({ status: 'ok', message: 'Tech_Masters Backend is running ⚡' });
+});
+
+app.get('/api/health', (_req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ status: 'ok', uptime: process.uptime() });
+});
+
+// ── Global error handler ──────────────────────────────────────────────────────
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+    console.error('[Error]', err.message || err);
+    const status = err.statusCode || err.status || 500;
+    res.status(status).json({
+        message: err.message || 'Internal server error',
+    });
 });
 
 module.exports = app;

@@ -1,38 +1,57 @@
 const express = require('express');
-const router = express.Router();
-const multer = require('multer');
+const router  = express.Router();
+const multer  = require('multer');
+const rateLimit = require('express-rate-limit');
 const upload = multer({ dest: 'uploads/' });
 
-// ✅ Import Controllers (Make sure names match)
-const { 
-    getProducts, 
-    uploadProducts, 
-    deleteProduct, 
+const {
+    getProducts,
+    getProductById,
+    getProductsInventory,
+    uploadProducts,
+    deleteProduct,
     deleteAllProducts,
-    createProductReview
+    createProductReview,
+    getCacheStats,
 } = require('../controllers/productController');
 
 const { fetchImage } = require('../controllers/imageController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, adminOnly } = require('../middleware/authMiddleware');
 
-// --- Routes ---
+const uploadLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 30,
+    message: { message: 'Too many uploads, try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
-// 1. Get All Products
-router.get('/', getProducts);
+// ── Image proxy (unchanged) ───────────────────────────────────────────────────
+router.get('/proxy/image', fetchImage);
 
-// 2. Upload CSV
-router.post('/upload', upload.single('file'), uploadProducts);
+// ── Admin-only ────────────────────────────────────────────────────────────────
+router.get('/inventory', protect, adminOnly, getProductsInventory);
 
-// 3. ✅ DELETE ALL PRODUCTS (Is route par hit karne se sab delete ho jayega)
-router.delete('/delete-all', deleteAllProducts);
+router.post(
+    '/upload',
+    uploadLimiter,
+    protect,
+    adminOnly,
+    upload.single('file'),
+    uploadProducts
+);
 
-// 4. ✅ DELETE SINGLE PRODUCT (One by one fix)
-router.delete('/:id', deleteProduct);
+router.delete('/delete-all', protect, adminOnly, deleteAllProducts);
 
-// 5. Add Review
+// ── Cache stats (admin only) ──────────────────────────────────────────────────
+router.get('/cache-stats', protect, adminOnly, getCacheStats);
+
+// ── Reviews ───────────────────────────────────────────────────────────────────
 router.post('/:id/reviews', protect, createProductReview);
 
-// 6. Image Proxy
-router.get('/proxy/image', fetchImage);
+// ── Public product endpoints ──────────────────────────────────────────────────
+router.get('/',    getProducts);
+router.get('/:id', getProductById);
+router.delete('/:id', protect, adminOnly, deleteProduct);
 
 module.exports = router;

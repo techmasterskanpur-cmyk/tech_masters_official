@@ -1,4 +1,4 @@
-import ForgotPassword from "./pages/ForgotPassword";
+import React, { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,49 +7,70 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { AppProvider, useAuth } from "@/context/AppContext";
 import ScrollToTop from "@/components/ScrollToTop";
 
+// ── Critical path: eagerly loaded (small, renders first) ──────────────────────
 import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ProductListing from "./pages/ProductListing";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import Wishlist from "./pages/Wishlist";
-import Checkout from "./pages/Checkout";
-import PaymentStatus from "./pages/PaymentStatus";
-import Dashboard from "./pages/Dashboard";
-import DashboardProfile from "./pages/dashboard/DashboardProfile";
-import DashboardOrders from "./pages/dashboard/DashboardOrders";
-import DashboardAddresses from "./pages/dashboard/DashboardAddresses";
-import OrderDetail from "./pages/dashboard/OrderDetail";
-
-import AdminLayout from "./pages/admin/AdminLayout";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-
 import NotFound from "./pages/NotFound";
 
-// ✅ ADDED LEGAL PAGES IMPORTS
-import ShippingPolicy from "./pages/ShippingPolicy";
-import TermsOfUse from "./pages/TermsOfUse";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import AboutUs from "./pages/AboutUs";
+// ── Non-critical: lazy-loaded (downloaded only when user navigates there) ────
+const Login           = lazy(() => import("./pages/Login"));
+const Signup          = lazy(() => import("./pages/Signup"));
+const ForgotPassword  = lazy(() => import("./pages/ForgotPassword"));
+const ProductListing  = lazy(() => import("./pages/ProductListing"));
+const ProductDetail   = lazy(() => import("./pages/ProductDetail"));
+const Cart            = lazy(() => import("./pages/Cart"));
+const Wishlist        = lazy(() => import("./pages/Wishlist"));
+const Checkout        = lazy(() => import("./pages/Checkout"));
+const PaymentStatus   = lazy(() => import("./pages/PaymentStatus"));
+const ShippingPolicy  = lazy(() => import("./pages/ShippingPolicy"));
+const TermsOfUse      = lazy(() => import("./pages/TermsOfUse"));
+const PrivacyPolicy   = lazy(() => import("./pages/PrivacyPolicy"));
+const AboutUs         = lazy(() => import("./pages/AboutUs"));
 
-// ✅ UI Components for Loaders
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardProfile = lazy(() => import("./pages/dashboard/DashboardProfile"));
+const DashboardOrders = lazy(() => import("./pages/dashboard/DashboardOrders"));
+const DashboardAddresses = lazy(() => import("./pages/dashboard/DashboardAddresses"));
+const OrderDetail = lazy(() => import("./pages/dashboard/OrderDetail"));
+
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Loader2 } from "lucide-react";
 
-const queryClient = new QueryClient();
+/**
+ * QueryClient – production-tuned caching defaults.
+ *   staleTime: how long cached data is considered fresh (no refetch).
+ *   gcTime:    how long unused cache entries survive before garbage collection.
+ *   retry:     exponential backoff on failure (2 retries max).
+ */
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime:            30_000,    // 30 s – don't refetch on every render
+      gcTime:          5 * 60_000,    // 5 min – keep data in memory after unmount
+      retry:                2,
+      retryDelay:           (attempt) => Math.min(1000 * 2 ** attempt, 10_000),
+      refetchOnWindowFocus: false,    // don't blast the backend when tab refocuses
+    },
+  },
+});
 
-// ==========================================
-// ✅ SECURITY GATEKEEPERS
-// ==========================================
+const RouteFallback = () => (
+  <div className="min-h-screen flex flex-col bg-background">
+    <Navbar />
+    <div className="flex-1 flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+    <Footer />
+  </div>
+);
 
-// 1. Blocks guests from seeing User Dashboard
 const ProtectedRoute = () => {
-  const { user, isAuthenticated } = useAuth();
-  
-  // If we have a token in localStorage but state isn't updated yet, wait.
-  const hasToken = !!localStorage.getItem('user');
+  const { user } = useAuth();
+
+  const hasToken = !!localStorage.getItem("user");
   if (hasToken && !user) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
@@ -66,14 +87,11 @@ const ProtectedRoute = () => {
   return <Outlet />;
 };
 
-// 2. Strictly locks Admin Panel to your two specific emails
 const AdminRoute = () => {
   const { user } = useAuth();
-  
-  // Check if we are still "Loading" the user from localStorage
-  const userStored = localStorage.getItem('user');
-  
-  // If there's data in storage but React state is still null, show a loader
+
+  const userStored = localStorage.getItem("user");
+
   if (userStored && !user) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
@@ -86,27 +104,26 @@ const AdminRoute = () => {
     );
   }
 
-  // Now perform the actual checks
   if (!user) {
-    console.log("AdminRoute: No user session found. Redirecting...");
     return <Navigate to="/login" replace />;
   }
-  
-  const ADMIN_EMAILS = ['alankritasthana12@gmail.com', 'techmasterskanpur@gmail.com'];
-  
-  // Normalize emails to avoid case-sensitivity issues
+
+  const ADMIN_EMAILS = [
+    "alankritasthana12@gmail.com",
+    "techmasterskanpur@gmail.com",
+  ];
+
   const userEmail = user.email?.toLowerCase().trim();
-  const isAuthorized = ADMIN_EMAILS.some(email => email.toLowerCase() === userEmail);
+  const isAuthorized = ADMIN_EMAILS.some(
+    (email) => email.toLowerCase() === userEmail
+  );
 
   if (!isAuthorized) {
-    console.warn("Access Denied for:", user.email);
     return <Navigate to="/" replace />;
   }
-  
+
   return <Outlet />;
 };
-
-// ==========================================
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -116,47 +133,45 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/products" element={<ProductListing />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/wishlist" element={<Wishlist />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/payment/:status" element={<PaymentStatus />} />
-            
-            {/* ✅ FIXED LEGAL ROUTES TO MATCH YOUR FOOTER BUTTONS */}
-            <Route path="/shipping" element={<ShippingPolicy />} />
-            <Route path="/terms" element={<TermsOfUse />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/about" element={<AboutUs />} />
-            
-            {/* User Dashboard */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />}>
-                <Route index element={<DashboardProfile />} />
-                <Route path="orders" element={<DashboardOrders />} />
-                <Route path="orders/:orderId" element={<OrderDetail />} />
-                <Route path="addresses" element={<DashboardAddresses />} />
-              </Route>
-            </Route>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/products" element={<ProductListing />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/payment/:status" element={<PaymentStatus />} />
 
-            {/* Admin Dashboard */}
-            <Route element={<AdminRoute />}>
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="orders" element={<AdminDashboard />} />
-                <Route path="pending" element={<AdminDashboard />} />
-                <Route path="delivered" element={<AdminDashboard />} />
-              </Route>
-            </Route>
+              <Route path="/shipping" element={<ShippingPolicy />} />
+              <Route path="/terms" element={<TermsOfUse />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/about" element={<AboutUs />} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route element={<ProtectedRoute />}>
+                <Route path="/dashboard" element={<Dashboard />}>
+                  <Route index element={<DashboardProfile />} />
+                  <Route path="orders" element={<DashboardOrders />} />
+                  <Route path="orders/:orderId" element={<OrderDetail />} />
+                  <Route path="addresses" element={<DashboardAddresses />} />
+                </Route>
+              </Route>
+
+              <Route element={<AdminRoute />}>
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="orders" element={<AdminDashboard />} />
+                  <Route path="pending" element={<AdminDashboard />} />
+                  <Route path="delivered" element={<AdminDashboard />} />
+                </Route>
+              </Route>
+
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </AppProvider>
     </TooltipProvider>
