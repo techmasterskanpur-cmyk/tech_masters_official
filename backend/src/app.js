@@ -38,21 +38,31 @@ app.use(compression({ level: 6, threshold: 1024 }));
 app.use(helmet());
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const ALLOWED_ORIGINS = [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    // Add your production Vercel URL here, e.g.:
-    process.env.FRONTEND_URL,
-].filter(Boolean);
+// Allow: all *.vercel.app domains, localhost (any port), and any explicit
+// FRONTEND_URL set in the environment.
+const VERCEL_PATTERN = /^https:\/\/[\w-]+(\.vercel\.app)$/;
+const LOCALHOST_PATTERN = /^http:\/\/localhost(:\d+)?$/;
 
 app.use(
     cors({
         origin: (origin, callback) => {
-            // Allow requests with no origin (mobile apps, curl, Postman)
+            // Allow requests with no origin (curl, Postman, mobile apps, SSR)
             if (!origin) return callback(null, true);
-            if (ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV === 'development') {
+
+            // Allow all Vercel preview + production deployments
+            if (VERCEL_PATTERN.test(origin)) return callback(null, true);
+
+            // Allow localhost development
+            if (LOCALHOST_PATTERN.test(origin)) return callback(null, true);
+
+            // Allow explicit custom domain set via env var
+            if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
                 return callback(null, true);
             }
+
+            // Allow everything in development
+            if (process.env.NODE_ENV !== 'production') return callback(null, true);
+
             callback(new Error(`CORS: origin "${origin}" not allowed`));
         },
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
