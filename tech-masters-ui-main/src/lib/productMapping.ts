@@ -36,7 +36,7 @@ export interface ApiProduct {
 
 /** Paginated product list as returned by GET /api/products or /api/homepage */
 export interface PaginatedProducts {
-  products: ApiProduct[];
+  items: ApiProduct[];
   page: number;
   pages: number;
   total: number;

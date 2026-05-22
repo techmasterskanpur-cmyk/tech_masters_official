@@ -68,8 +68,11 @@ const ProductListing = () => {
         setLoading(true);
         const { data } = await api.get('/products');
         
+        // The backend returns { items, total, page, pages, limit }
+        const productsList = Array.isArray(data) ? data : (data.items || []);
+
         // Map Backend Data Correctly
-        const mappedProducts = data.map((p: any) => ({
+        const mappedProducts = productsList.map((p: any) => ({
           id: p._id || p.productId, 
           name: p.name,
           description: p.description,

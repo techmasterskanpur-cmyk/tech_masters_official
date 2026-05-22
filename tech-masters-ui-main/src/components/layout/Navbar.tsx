@@ -76,7 +76,11 @@ export const Navbar: React.FC = () => {
         
         // Extract unique categories and count them (matching ProductListing logic)
         const counts: Record<string, number> = {};
-        data.forEach((p: any) => {
+        
+        // The backend returns { items, total, page, pages, limit }
+        const productsList = Array.isArray(data) ? data : (data.items || []);
+
+        productsList.forEach((p: any) => {
             if (p.category) {
                 counts[p.category] = (counts[p.category] || 0) + 1;
             }
