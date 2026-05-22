@@ -16,8 +16,8 @@ const {
     wrapSWR,
 } = require('../utils/cache');
 
-const MAX_LIMIT_PUBLIC = 100;
-const DEFAULT_LIMIT = 24;
+const MAX_LIMIT_PUBLIC = 3000;
+const DEFAULT_LIMIT = 2000;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
