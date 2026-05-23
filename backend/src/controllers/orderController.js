@@ -24,6 +24,7 @@ const generateUniqueOrderId = async () => {
 exports.createOrder = async (req, res) => {
     try {
         const { orderItems, shippingAddress, paymentMethod, transactionId } = req.body;
+        console.log("➡️ Order creation started. Payload:", JSON.stringify(req.body, null, 2));
 
         if (orderItems && orderItems.length === 0) {
             return res.status(400).json({ message: 'No order items' });
@@ -40,10 +41,17 @@ exports.createOrder = async (req, res) => {
         let itemsListHtml = ''; 
 
         for (const item of orderItems) {
+            console.log(`🔍 Looking up product: ${item.product}`);
             const productFromDb = await Product.findById(item.product);
             
-            if (!productFromDb) return res.status(404).json({ message: `Product not found` });
-            if (productFromDb.stock < item.quantity) return res.status(400).json({ message: `Not enough stock` });
+            if (!productFromDb) {
+                console.error(`❌ Product not found in DB: ${item.product}`);
+                return res.status(400).json({ message: `Product not found or invalid ID: ${item.product}` });
+            }
+            if (productFromDb.stock < item.quantity) {
+                console.error(`❌ Not enough stock for product: ${item.product}`);
+                return res.status(400).json({ message: `Not enough stock` });
+            }
 
             calculatedTotal += productFromDb.finalPrice * item.quantity;
             
@@ -188,6 +196,7 @@ exports.createOrder = async (req, res) => {
             `;
 
             // ✅ Wait for email to be sent reliably before concluding
+            console.log(`📧 Triggering Order Confirmation Email to ${req.user.email} for order ${customOrderId}...`);
             await sendEmail({
                 email: req.user.email,
                 subject: `Tech_Masters Invoice - Order #${customOrderId}`,
@@ -403,9 +412,35 @@ exports.updateOrderStatus = async (req, res) => {
 
             res.json(updatedOrder);
         } else {
-            res.status(404).json({ message: 'Order not found' });
+            res.status(400).json({ message: 'Order not found' });
         }
     } catch (error) {
         res.status(500).json({ message: 'Update failed', error: error.message });
+    }
+};
+
+// =================================================================
+// 3. TEST EMAIL DELIVERY ROUTE
+// =================================================================
+exports.testEmail = async (req, res) => {
+    try {
+        console.log("➡️ Test email route triggered by user:", req.user.email);
+        const sendEmail = require('../utils/sendEmail');
+        
+        await sendEmail({
+            email: req.user.email,
+            subject: 'Test Email Delivery from Tech_Masters',
+            message: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                    <h2 style="color: #2563EB;">Email Delivery Test Successful!</h2>
+                    <p>If you are receiving this email, your Resend API integration is working correctly.</p>
+                </div>
+            `
+        });
+        
+        res.status(200).json({ message: 'Test email sent successfully!' });
+    } catch (error) {
+        console.error("Test Email Failed:", error);
+        res.status(500).json({ message: 'Email failed to send', error: error.message });
     }
 };

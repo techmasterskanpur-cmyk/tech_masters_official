@@ -5,7 +5,8 @@ const {
     createOrder, 
     getMyOrders, 
     getOrders, 
-    updateOrderStatus 
+    updateOrderStatus,
+    testEmail
 } = require('../controllers/orderController');
 
 const { protect } = require('../middleware/authMiddleware');
@@ -13,6 +14,9 @@ const { protect } = require('../middleware/authMiddleware');
 // --- User Routes ---
 // Order create karne ke liye
 router.post('/', protect, createOrder);
+
+// Email testing karne ke liye
+router.post('/test-email', protect, testEmail);
 
 // User ko apne orders dekhne ke liye
 router.get('/myorders', protect, getMyOrders);
