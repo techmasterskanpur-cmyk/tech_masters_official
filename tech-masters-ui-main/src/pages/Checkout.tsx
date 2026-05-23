@@ -404,10 +404,10 @@ const Checkout = () => {
 
       {/* QR Code Payment Modal */}
       <Dialog open={isQRModalOpen} onOpenChange={(open) => !isLoading && setIsQRModalOpen(open)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px]" aria-describedby="qr-dialog-desc">
           <DialogHeader>
             <DialogTitle className="text-center text-xl">Secure UPI Payment</DialogTitle>
-            <DialogDescription className="text-center">
+            <DialogDescription id="qr-dialog-desc" className="text-center">
               Scan the QR code below to pay <span className="font-bold text-foreground">{formatPrice(total)}</span>
             </DialogDescription>
           </DialogHeader>
