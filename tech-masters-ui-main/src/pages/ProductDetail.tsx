@@ -108,7 +108,8 @@ const ProductDetail = () => {
       try {
         setLoading(true);
         const { data } = await api.get('/products');
-        const found = data.find((p: any) => p._id === id || p.productId === id);
+        const productsList = Array.isArray(data) ? data : (data.items || []);
+        const found = productsList.find((p: any) => p._id === id || p.productId === id);
 
         if (found) {
           // Robust Image Logic: Use direct URL
@@ -135,7 +136,7 @@ const ProductDetail = () => {
             specifications: found.specifications || {}
           });
 
-          const related = data
+          const related = productsList
             .filter((p: any) => p.category === found.category && p._id !== found._id)
             .slice(0, 40)
             .map((p: any) => ({
@@ -182,7 +183,8 @@ const ProductDetail = () => {
       // Refresh product data
       if (id) {
           const { data } = await api.get('/products');
-          const found = data.find((p: any) => p._id === id || p.productId === id);
+          const productsList = Array.isArray(data) ? data : (data.items || []);
+          const found = productsList.find((p: any) => p._id === id || p.productId === id);
           if (found) {
               setProduct({
                   ...product,
