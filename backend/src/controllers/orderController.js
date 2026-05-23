@@ -21,6 +21,7 @@ const generateUniqueOrderId = async () => {
 // =================================================================
 // 1. CREATE ORDER (Sends "Order Confirmed" Invoice Email)
 // =================================================================
+exports.createOrder = async (req, res) => {
     try {
         const { orderItems, shippingAddress, paymentMethod, transactionId } = req.body;
 
