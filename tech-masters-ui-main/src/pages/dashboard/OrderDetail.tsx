@@ -85,10 +85,10 @@ const OrderDetail = () => {
     documentTitle: `Invoice_${order?.orderId || order?._id}`,
     pageStyle: `
       @media print {
-        body { -webkit-print-color-adjust: exact; margin: 0; padding: 20px; font-family: sans-serif; }
-        .print-container { width: 100%; max-width: 800px; margin: 0 auto; border: none !important; shadow: none !important; }
+        body { visibility: hidden; margin: 0; padding: 0; }
+        .print-container { visibility: visible; position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; margin: 0; padding: 20px; }
         .no-print { display: none !important; }
-        @page { margin: 10mm; }
+        @page { margin: 0; size: auto; }
       }
     `
   });
@@ -295,6 +295,12 @@ const OrderDetail = () => {
                 <span className="text-muted-foreground">Method</span>
                 <span className="font-medium uppercase text-sm">{order.paymentMethod}</span>
               </div>
+              {order.transactionId && (
+              <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                <span className="text-muted-foreground">Ref/UTR</span>
+                <span className="font-medium text-sm">{order.transactionId}</span>
+              </div>
+              )}
               <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
                 <span className="text-muted-foreground">Status</span>
                 <Badge variant={order.paymentStatus === 'Paid' ? 'secondary' : 'outline'} className={order.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'text-orange-600 border-orange-200 bg-orange-50'}>
@@ -387,6 +393,9 @@ const OrderDetail = () => {
                 <div>
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Payment Details</p>
                     <p className="text-sm text-gray-700 mb-1"><span className="font-semibold">Method:</span> <span className="uppercase">{order.paymentMethod}</span></p>
+                    {order.transactionId && (
+                        <p className="text-sm text-gray-700 mb-1"><span className="font-semibold">UTR/Ref:</span> {order.transactionId}</p>
+                    )}
                     <p className="text-sm text-gray-700">
                         <span className="font-semibold">Status:</span> 
                         <span className={`ml-2 px-2 py-0.5 rounded text-xs font-bold uppercase ${order.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>

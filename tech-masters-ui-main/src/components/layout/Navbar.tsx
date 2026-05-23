@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -67,6 +67,40 @@ export const Navbar: React.FC = () => {
 
   // ✅ DYNAMIC CATEGORY STATE
   const [dbCategories, setDbCategories] = useState<{name: string, count: number}[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  
+  // Real-time Search State
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Debounce query
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 200);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Click outside listener to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Compute search results
+  const searchResults = useMemo(() => {
+    if (!debouncedQuery.trim() || allProducts.length === 0) return [];
+    const q = debouncedQuery.toLowerCase();
+    return allProducts.filter(p => 
+      p.name.toLowerCase().includes(q) || 
+      (p.category && p.category.toLowerCase().includes(q)) ||
+      (p.description && p.description.toLowerCase().includes(q))
+    ).slice(0, 5); // top 5
+  }, [debouncedQuery, allProducts]);
 
   // ✅ FETCH CATEGORIES ON NAVBAR LOAD
   useEffect(() => {
@@ -79,6 +113,8 @@ export const Navbar: React.FC = () => {
         
         // The backend returns { items, total, page, pages, limit }
         const productsList = Array.isArray(data) ? data : (data.items || []);
+        
+        setAllProducts(productsList);
 
         productsList.forEach((p: any) => {
             if (p.category) {
@@ -124,7 +160,7 @@ export const Navbar: React.FC = () => {
           </Link>
 
           {/* Search Bar - Desktop */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl">
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl" ref={searchContainerRef}>
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -133,7 +169,48 @@ export const Navbar: React.FC = () => {
                 className="w-full pl-10 pr-4 bg-muted/50 border-border focus:bg-background"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
               />
+              
+              {/* Real-time Search Dropdown */}
+              {searchFocused && query.trim() && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-card border rounded-lg shadow-lg overflow-hidden z-50">
+                  {searchResults.length > 0 ? (
+                    <div className="py-2">
+                      {searchResults.map(product => {
+                        const productUrl = `/product/${product.productId || product._id}`;
+                        const imgSrc = (product.images && product.images[0]) || product.image || "https://placehold.co/100x100?text=No+Image";
+                        return (
+                          <Link
+                            key={product._id}
+                            to={productUrl}
+                            onClick={() => { setSearchFocused(false); setQuery(''); }}
+                            className="flex items-center gap-3 px-4 py-2 hover:bg-muted transition-colors"
+                          >
+                            <img src={imgSrc} alt={product.name} className="w-10 h-10 object-contain rounded-md bg-muted" />
+                            <div className="flex-1 overflow-hidden">
+                              <p className="text-sm font-medium truncate">{product.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{product.category}</p>
+                            </div>
+                            <span className="text-sm font-bold text-primary">₹{product.finalPrice || product.price}</span>
+                          </Link>
+                        );
+                      })}
+                      <button 
+                        type="button" 
+                        onClick={handleSearch}
+                        className="w-full text-center py-2 text-sm text-primary hover:bg-muted font-medium border-t mt-1"
+                      >
+                        View all results
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No products found for "{query}"
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </form>
 

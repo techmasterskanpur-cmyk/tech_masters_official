@@ -116,7 +116,8 @@ const AdminDashboard = () => {
     try {
         setProductsLoading(true);
         const { data } = await api.get('/products');
-        setProducts(data);
+        const productsList = Array.isArray(data) ? data : (data.items || []);
+        setProducts(productsList);
     } catch (error) {
         console.error("Failed to fetch products:", error);
     } finally {
@@ -144,6 +145,17 @@ const AdminDashboard = () => {
         fetchOrders(); 
     } catch (error) {
        alert("Failed to update status.");
+       fetchOrders(); 
+    }
+  };
+
+  const handleApprovePayment = async (orderId: string) => {
+    try {
+        setOrders(prev => prev.map(o => o._id === orderId ? { ...o, paymentStatus: 'Paid' } : o));
+        await api.put(`/orders/${orderId}/approve-payment`);
+        fetchOrders(); 
+    } catch (error) {
+       alert("Failed to approve payment.");
        fetchOrders(); 
     }
   };
@@ -214,10 +226,10 @@ const AdminDashboard = () => {
     documentTitle: `Invoice_${selectedOrder?.orderId || selectedOrder?._id}`,
     pageStyle: `
       @media print {
-        body { -webkit-print-color-adjust: exact; margin: 0; padding: 20px; font-family: sans-serif; }
-        .print-container { width: 100%; max-width: 800px; margin: 0 auto; border: none !important; shadow: none !important; }
+        body { visibility: hidden; margin: 0; padding: 0; }
+        .print-container { visibility: visible; position: absolute; left: 0; top: 0; width: 100%; border: none !important; box-shadow: none !important; margin: 0; padding: 20px; }
         .no-print { display: none !important; }
-        @page { margin: 10mm; }
+        @page { margin: 0; size: auto; }
       }
     `
   });
@@ -299,7 +311,12 @@ const AdminDashboard = () => {
                             <p className="text-sm text-muted-foreground mb-1">{order.user?.name || "Guest"} • {new Date(order.createdAt).toLocaleDateString()}</p>
                             <p className="text-sm font-medium">{order.orderItems.length} Items • {formatPrice(getOrderTotal(order))}</p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center justify-end gap-2 mt-2 md:mt-0">
+                            {order.paymentStatus === 'Pending Verification' && (
+                                <Button size="sm" variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50" onClick={() => handleApprovePayment(order._id)}>
+                                    Approve Payment
+                                </Button>
+                            )}
                             <Button variant="outline" size="sm" onClick={() => openInvoice(order)}><Eye className="h-4 w-4 mr-1" /> Details</Button>
                             {(order.orderStatus === 'Processing' || order.orderStatus === 'Pending') && (
                                 <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handleUpdateStatus(order._id, 'Shipped')}><Truck className="h-4 w-4 mr-1" /> Ship</Button>
@@ -492,6 +509,9 @@ const AdminDashboard = () => {
                     <div className="w-full sm:w-auto mb-4 sm:mb-0">
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Payment Details</p>
                         <p className="text-sm text-gray-700 mb-1"><span className="font-semibold">Method:</span> <span className="uppercase">{selectedOrder.paymentMethod}</span></p>
+                        {selectedOrder.transactionId && (
+                            <p className="text-sm text-gray-700 mb-1"><span className="font-semibold">UTR/Ref:</span> {selectedOrder.transactionId}</p>
+                        )}
                         <p className="text-sm text-gray-700"><span className="font-semibold">Status:</span> <Badge variant="outline" className={selectedOrder.paymentStatus === 'Paid' ? 'text-green-600 border-green-600' : 'text-orange-600 border-orange-600'}>{selectedOrder.paymentStatus || 'Pending'}</Badge></p>
                     </div>
                     

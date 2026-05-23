@@ -24,4 +24,20 @@ router.get('/', protect, getOrders);
 // 2. Order ka status badalne ke liye (Ship/Deliver buttons ke liye)
 router.put('/:id/:status', protect, updateOrderStatus);
 
+// 3. Approve payment manually
+router.put('/:id/approve-payment', protect, async (req, res) => {
+    try {
+        const order = await require('../models/orderModel').findById(req.params.id);
+        if (order) {
+            order.paymentStatus = 'Paid';
+            await order.save();
+            res.json(order);
+        } else {
+            res.status(404).json({ message: 'Order not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'Update failed', error: error.message });
+    }
+});
+
 module.exports = router;

@@ -58,6 +58,9 @@ const orderSchema = new mongoose.Schema({
     deliveredAt: {
         type: Date
     },
+    transactionId: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now

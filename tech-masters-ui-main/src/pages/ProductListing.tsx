@@ -39,6 +39,7 @@ const ProductListing = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [visibleCount, setVisibleCount] = useState(24);
 
   const [maxPrice, setMaxPrice] = useState(50000);
 
@@ -195,6 +196,11 @@ const ProductListing = () => {
     return result;
   }, [products, shuffledProducts, categoryFromUrl, query, selectedCategories, priceRange, availability, minRating, sortBy]);
 
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [filteredProducts.length, sortBy, query, categoryFromUrl, selectedCategories, priceRange, availability, minRating]);
+
   const toggleCategory = (slug: string) => {
     setSelectedCategories(prev =>
       prev.includes(slug) ? prev.filter(c => c !== slug) : [...prev, slug]
@@ -253,6 +259,7 @@ const ProductListing = () => {
             min={0}
             max={maxPrice} 
             step={10}
+            className="touch-none"
           />
           <div className="flex items-center gap-2">
             <Input
@@ -337,11 +344,11 @@ const ProductListing = () => {
                     Filters
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-80 overflow-y-auto">
-                  <SheetHeader>
+                <SheetContent side="left" className="w-80 p-0 flex flex-col">
+                  <SheetHeader className="p-6 pb-2">
                     <SheetTitle>Filters</SheetTitle>
                   </SheetHeader>
-                  <div className="mt-6">
+                  <div className="flex-1 overflow-y-auto px-6 pb-6 mt-2">
                     <FilterContent />
                   </div>
                 </SheetContent>
@@ -404,16 +411,31 @@ const ProductListing = () => {
                   <p>{error}</p>
                 </div>
               ) : filteredProducts.length > 0 ? (
-                <div
-                  className={
-                    viewMode === 'grid'
-                      ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6'
-                      : 'space-y-4'
-                  }
-                >
-                  {filteredProducts.map(product => (
-                    <ProductCard key={product.id} product={product} />
-                  ))}
+                <div>
+                  <div
+                    className={
+                      viewMode === 'grid'
+                        ? 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6'
+                        : 'space-y-4'
+                    }
+                  >
+                    {filteredProducts.slice(0, visibleCount).map(product => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                  
+                  {visibleCount < filteredProducts.length && (
+                    <div className="flex justify-center mt-12 mb-8">
+                      <Button 
+                        variant="outline" 
+                        size="lg" 
+                        className="w-full sm:w-auto min-w-[200px]"
+                        onClick={() => setVisibleCount(prev => prev + 24)}
+                      >
+                        Load More Products ({filteredProducts.length - visibleCount} left)
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-16">

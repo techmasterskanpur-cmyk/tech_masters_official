@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useCart, useAuth } from '@/context/AppContext';
 // @ts-ignore
 import api from '../api/axios'; 
@@ -34,8 +35,10 @@ const Checkout = () => {
   const initialAddress = (user && user.addresses && user.addresses.length > 0) ? "0" : 'new';
   const [selectedAddressId, setSelectedAddressId] = useState<string>(initialAddress);
   
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('online');
+  const [paymentMethod, setPaymentMethod] = useState<'online'>('online');
   const [isLoading, setIsLoading] = useState(false);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [transactionId, setTransactionId] = useState('');
   
   const [showNewAddress, setShowNewAddress] = useState(initialAddress === 'new');
 
@@ -138,8 +141,9 @@ const Checkout = () => {
         })),
         shippingAddress: shippingAddress, 
         paymentMethod: paymentMethod, 
+        transactionId: transactionId || null,
         totalAmount: total,
-        deliveryCharge: deliveryCharge // sending delivery charge to backend just in case
+        deliveryCharge: deliveryCharge 
       };
 
       console.log("Sending Order Payload:", orderPayload); 
@@ -148,9 +152,10 @@ const Checkout = () => {
       const { data } = await api.post('/orders', orderPayload);
 
       // 4. Success
-      alert(`Order Placed Successfully!\n\nWe will contact you shortly for payment and confirmation.`);
+      alert(`Order Placed Successfully!\n\nYour payment is under manual verification. You will be notified once approved.`);
       
       if(clearCart) clearCart(); 
+      setIsQRModalOpen(false);
       
       // Navigate to Orders page to see status
       navigate('/dashboard/orders'); 
@@ -162,6 +167,22 @@ const Checkout = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCheckoutClick = () => {
+    // Basic validation before opening QR
+    if (showNewAddress || selectedAddressId === 'new') {
+        if (!newAddress.line1 || !newAddress.city || !newAddress.phone || !newAddress.pincode) {
+          alert("Please fill in address line 1, city, pincode, and phone number.");
+          return;
+        }
+    } else {
+        if (!user?.addresses[parseInt(selectedAddressId)]) {
+          alert("Please select a valid address.");
+          return;
+        }
+    }
+    setIsQRModalOpen(true);
   };
 
   return (
@@ -284,11 +305,7 @@ const Checkout = () => {
                   <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)} className="space-y-3">
                     <div className={`flex items-center space-x-3 p-4 rounded-lg border transition-colors ${paymentMethod === 'online' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border hover:border-primary/50'}`}>
                       <RadioGroupItem value="online" id="online" />
-                      <Label htmlFor="online" className="cursor-pointer flex-1 font-medium">Online Payment (UPI/Card)</Label>
-                    </div>
-                    <div className={`flex items-center space-x-3 p-4 rounded-lg border transition-colors ${paymentMethod === 'cod' ? 'border-primary bg-primary/5 shadow-sm' : 'border-border hover:border-primary/50'}`}>
-                      <RadioGroupItem value="cod" id="cod" />
-                      <Label htmlFor="cod" className="cursor-pointer flex-1 font-medium">Cash on Delivery</Label>
+                      <Label htmlFor="online" className="cursor-pointer flex-1 font-medium">Online Payment (UPI / QR Code)</Label>
                     </div>
                   </RadioGroup>
                 </CardContent>
@@ -374,8 +391,8 @@ const Checkout = () => {
                     </div>
                   </div>
 
-                  <Button onClick={handleProceedToPayment} className="w-full h-12 text-base font-bold shadow-lg mt-2" disabled={isLoading || items.length === 0}>
-                    {isLoading ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</> : 'Place Order Securely'}
+                  <Button onClick={handleCheckoutClick} className="w-full h-12 text-base font-bold shadow-lg mt-2" disabled={isLoading || items.length === 0}>
+                    Proceed to Payment
                   </Button>
                 </CardContent>
               </Card>
@@ -384,6 +401,46 @@ const Checkout = () => {
           </div>
         </div>
       </main>
+
+      {/* QR Code Payment Modal */}
+      <Dialog open={isQRModalOpen} onOpenChange={(open) => !isLoading && setIsQRModalOpen(open)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl">Secure UPI Payment</DialogTitle>
+            <DialogDescription className="text-center">
+              Scan the QR code below to pay <span className="font-bold text-foreground">{formatPrice(total)}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center space-y-6 py-4">
+            <div className="bg-white p-4 rounded-xl border shadow-sm">
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=techmasterskanpur@okhdfcbank&pn=Tech_Masters&am=${total}&cu=INR`} alt="Payment QR Code" className="w-48 h-48" />
+            </div>
+            
+            <div className="w-full space-y-4">
+              <div className="bg-orange-50 border border-orange-200 text-orange-800 p-3 rounded-lg text-sm">
+                <strong>Important:</strong> Your order will be placed under <strong>Manual Verification</strong>. Please enter the 12-digit UTR or Transaction Reference number below after paying.
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="utr">Transaction ID (UTR)</Label>
+                <Input 
+                  id="utr" 
+                  placeholder="e.g., 312345678901" 
+                  value={transactionId}
+                  onChange={(e) => setTransactionId(e.target.value)}
+                  maxLength={20}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsQRModalOpen(false)} disabled={isLoading}>Cancel</Button>
+            <Button onClick={handleProceedToPayment} disabled={isLoading || transactionId.trim().length < 8}>
+              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</> : 'Submit Payment Details'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );

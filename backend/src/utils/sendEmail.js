@@ -32,8 +32,8 @@ const sendEmail = async (options) => {
             html: options.message, // HTML Body
         };
 
-        // Note: Transporter.sendMail is asynchronous, but we return the promise
-        return transporter.sendMail(mailOptions);
+        // Explicitly await the email sending to guarantee reliability
+        return await transporter.sendMail(mailOptions);
     } catch (error) {
         console.error("Nodemailer Error:", error);
     }
