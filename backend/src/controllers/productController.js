@@ -135,7 +135,12 @@ exports.uploadProducts = async (req, res) => {
                     row[cleanKey(key)] = rawRow[key];
                 });
 
-                const name = row['wd-entities-title'] || row['name'] || `Product ${rowIndex}`;
+                let nameStr = row['wd-entities-title'] || row['name'] || `Product ${rowIndex}`;
+                const name = nameStr.trim();
+                
+                // Generate a stable slug from the product name
+                const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                const productId = slug || `product-${rowIndex}`;
 
                 let basePrice = parseFloat(row['woocommerce-Price-amount'] || row['basePrice']);
                 if (isNaN(basePrice)) basePrice = 0;
@@ -159,8 +164,8 @@ exports.uploadProducts = async (req, res) => {
                 else images.push('https://placehold.co/600x600?text=No+Image');
 
                 products.push({
-                    productId:   `SKU-${Date.now()}-${rowIndex}`,
-                    name:        name.trim(),
+                    productId:   productId,
+                    name:        name,
                     category:    row.category || 'Components',
                     description: row.description || name,
                     basePrice,
@@ -175,9 +180,23 @@ exports.uploadProducts = async (req, res) => {
         })
         .on('end', async () => {
             try {
-                await Product.deleteMany({});
-                await Product.insertMany(products);
-                console.log(`✅ SUCCESS! ${products.length} Products Uploaded.`);
+                // Use bulkWrite with upsert to preserve existing reviews and data
+                const bulkOps = products.map(p => ({
+                    updateOne: {
+                        filter: { productId: p.productId },
+                        update: { 
+                            $set: p,
+                            $setOnInsert: { reviewCount: 0, numReviews: 0, rating: 0, reviews: [] }
+                        },
+                        upsert: true
+                    }
+                }));
+                
+                if (bulkOps.length > 0) {
+                    await Product.bulkWrite(bulkOps);
+                }
+                
+                console.log(`✅ SUCCESS! ${products.length} Products Uploaded/Updated.`);
                 invalidateAll();                // nuke everything after bulk reload
                 fs.unlinkSync(req.file.path);
                 res.status(200).json({ message: 'Upload Successful!' });
@@ -231,6 +250,9 @@ exports.createProductReview = asyncHandler(async (req, res) => {
     product.rating =
         product.reviews.reduce((acc, item) => item.rating + acc, 0) /
         product.reviews.length;
+        
+    product.reviewCount = product.reviews.length;
+    product.numReviews = product.reviews.length;
 
     await product.save();
 

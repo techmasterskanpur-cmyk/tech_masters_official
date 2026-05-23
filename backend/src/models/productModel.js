@@ -17,7 +17,6 @@ const productSchema = new mongoose.Schema({
         required: [true, 'Please add a category'],
         index: true 
     },
-    // ✅ NEW: Added to store full category path (e.g., ["Arduino", "Sensors"])
     subCategories: [{
         type: String
     }],
@@ -52,6 +51,14 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    reviewCount: {
+        type: Number,
+        default: 0
+    },
+    numReviews: {
+        type: Number,
+        default: 0
+    },
     reviews: [{
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         name: String,
@@ -64,5 +71,9 @@ const productSchema = new mongoose.Schema({
         default: Date.now
     }
 });
+
+// Create indexes for efficient sorting and querying
+productSchema.index({ reviewCount: -1, rating: -1 });
+productSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Product', productSchema);

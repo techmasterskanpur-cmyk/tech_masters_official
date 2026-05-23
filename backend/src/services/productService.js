@@ -122,49 +122,24 @@ async function _fetchProducts(query) {
         minRating: query.minRating,
     });
 
-    const pipeline = [
-        { $match: match },
-        {
-            $addFields: {
-                reviewCount: { $size: { $ifNull: ['$reviews', []] } },
-                numReviews:  { $size: { $ifNull: ['$reviews', []] } },
-            },
-        },
-        { $sort: sortStage(sort) },
-        {
-            $facet: {
-                metadata: [{ $count: 'total' }],
-                data: [
-                    { $skip: (page - 1) * limit },
-                    { $limit: limit },
-                    {
-                        $project: {
-                            name: 1,
-                            category: 1,
-                            subCategories: 1,
-                            productId: 1,
-                            finalPrice: 1,
-                            basePrice: 1,
-                            stock: 1,
-                            images: 1,
-                            image: 1,
-                            rating: 1,
-                            createdAt: 1,
-                            reviewCount: 1,
-                            numReviews: 1,
-                            description: {
-                                $substrCP: [{ $ifNull: ['$description', ''] }, 0, 220],
-                            },
-                        },
-                    },
-                ],
-            },
-        },
-    ];
+    const countPromise = Product.countDocuments(match);
+    const itemsPromise = Product.find(match)
+        .select('name category subCategories productId finalPrice basePrice stock images image rating createdAt reviewCount numReviews description')
+        .sort(sortStage(sort))
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
 
-    const [result] = await Product.aggregate(pipeline).allowDiskUse(false);
-    const total = result?.metadata?.[0]?.total ?? 0;
-    const items = result?.data ?? [];
+    const [total, rawItems] = await Promise.all([countPromise, itemsPromise]);
+
+    // Truncate description in memory, mimicking the previous $substrCP aggregation
+    const items = rawItems.map(item => {
+        if (item.description && item.description.length > 220) {
+            item.description = item.description.substring(0, 220);
+        }
+        return item;
+    });
+
     const pages = Math.ceil(total / limit) || 1;
 
     return { items, total, page, pages, limit };
@@ -201,8 +176,11 @@ async function _fetchProductById(id) {
     const doc = await Product.findOne({ $or: or }).lean();
     if (!doc) return null;
 
-    const reviewCount = Array.isArray(doc.reviews) ? doc.reviews.length : 0;
-    return { ...doc, numReviews: reviewCount };
+    // Use stored fields, fallback to array calculation for older documents
+    doc.numReviews = doc.numReviews || (Array.isArray(doc.reviews) ? doc.reviews.length : 0);
+    doc.reviewCount = doc.reviewCount || doc.numReviews;
+    
+    return doc;
 }
 
 // ── Public API (cache-wrapped) ────────────────────────────────────────────────
