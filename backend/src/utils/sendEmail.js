@@ -10,21 +10,28 @@ const sendEmail = async (options) => {
     try {
         if (!resend) {
             console.error("⚠️ Email not sent: RESEND_API_KEY is missing from environment variables.");
-            return null; // Fail gracefully without crashing the order workflow
+            return null; 
         }
 
-        // Explicitly await the email sending to guarantee reliability
-        const data = await resend.emails.send({
-            from: 'Tech Masters Support <onboarding@resend.dev>', // Sender Name/Domain
+        console.log(`Attempting to send email to ${options.email} using Resend...`);
+
+        // Destructure data and error from Resend response
+        const { data, error } = await resend.emails.send({
+            from: 'Tech Masters Support <onboarding@resend.dev>', // Resend testing sender
             to: options.email,
             subject: options.subject,
-            html: options.message, // HTML Body
+            html: options.message,
         });
+
+        if (error) {
+            console.error("❌ Resend API Error:", error);
+            throw new Error(error.message);
+        }
 
         console.log("✅ Resend Email sent successfully:", data);
         return data;
     } catch (error) {
-        console.error("❌ Resend API Error:", error);
+        console.error("❌ Email Delivery Failed:", error.message || error);
         throw error;
     }
 };
