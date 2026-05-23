@@ -1,41 +1,23 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// ✅ Create transporter once for persistence (Singleton pattern)
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // MUST be true for port 465 (Implicit TLS)
-    auth: {
-        user: process.env.SMTP_EMAIL,
-        pass: process.env.SMTP_PASSWORD,
-    },
-    // Add debug and timeout settings to prevent silent 2-minute hangs
-    connectionTimeout: 10000, 
-    greetingTimeout: 5000,
-    socketTimeout: 20000,
-});
-
-transporter.verify(function (error, success) {
-    if (error) {
-        console.error("❌ SMTP Connection Error (Check Gmail App Password):", error);
-    } else {
-        console.log("✅ SMTP Server is ready to take our messages");
-    }
-});
+// ✅ Initialize Resend with the API key from environment variables
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendEmail = async (options) => {
     try {
-        const mailOptions = {
-            from: `"Tech Masters Support" <${process.env.SMTP_EMAIL}>`, // Sender Name
+        // Explicitly await the email sending to guarantee reliability
+        const data = await resend.emails.send({
+            from: 'Tech Masters Support <onboarding@resend.dev>', // Sender Name/Domain
             to: options.email,
             subject: options.subject,
             html: options.message, // HTML Body
-        };
+        });
 
-        // Explicitly await the email sending to guarantee reliability
-        return await transporter.sendMail(mailOptions);
+        console.log("✅ Resend Email sent successfully:", data);
+        return data;
     } catch (error) {
-        console.error("Nodemailer Error:", error);
+        console.error("❌ Resend API Error:", error);
+        throw error;
     }
 };
 
