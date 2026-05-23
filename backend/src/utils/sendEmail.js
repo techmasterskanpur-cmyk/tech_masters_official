@@ -1,10 +1,18 @@
 const { Resend } = require('resend');
 
-// ✅ Initialize Resend with the API key from environment variables
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Safely initialize Resend only if the API key is provided
+let resend;
+if (process.env.RESEND_API_KEY) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+}
 
 const sendEmail = async (options) => {
     try {
+        if (!resend) {
+            console.error("⚠️ Email not sent: RESEND_API_KEY is missing from environment variables.");
+            return null; // Fail gracefully without crashing the order workflow
+        }
+
         // Explicitly await the email sending to guarantee reliability
         const data = await resend.emails.send({
             from: 'Tech Masters Support <onboarding@resend.dev>', // Sender Name/Domain
